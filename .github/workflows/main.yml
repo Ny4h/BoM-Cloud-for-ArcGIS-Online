@@ -1,16 +1,15 @@
-name: Sync BoM to GitHub Pages
+name: Sync BoM COG to GitHub Pages
 
 on:
   schedule:
-    # This triggers the script every 10 minutes
     - cron: '*/10 * * * *'
-  workflow_dispatch: # This adds a "Run" button so you can test it manually
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Essential: allows the Action to "save" the image to your repo
+      contents: write
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -20,7 +19,13 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Run download script
+      - name: Install GDAL and Rasterio
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+          pip install rasterio
+
+      - name: Run COG Update Script
         run: python update_clouds.py
 
       - name: Commit and Push
@@ -28,5 +33,5 @@ jobs:
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           git add latest_cloud.tif
-          git commit -m "Update cloud imagery: $(date)" || exit 0
-          git push
+          # Only commit if the file actually changed to save bandwidth
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update COG cloud imagery: $(date)" && git push)
