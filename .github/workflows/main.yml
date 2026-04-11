@@ -1,0 +1,32 @@
+name: Sync BoM to GitHub Pages
+
+on:
+  schedule:
+    # This triggers the script every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # This adds a "Run" button so you can test it manually
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Essential: allows the Action to "save" the image to your repo
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Run download script
+        run: python update_clouds.py
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add latest_cloud.tif
+          git commit -m "Update cloud imagery: $(date)" || exit 0
+          git push
